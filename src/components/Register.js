@@ -7,10 +7,20 @@ import { config } from "../App";
 import Footer from "./Footer";
 import Header from "./Header";
 import "./Register.css";
+import { useHistory, Link } from "react-router-dom";
+// import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 
 const Register = () => {
   const { enqueueSnackbar } = useSnackbar();
+  const [formData, setFormData] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const history = useHistory();
 
+  const handleChange = (event) => {
+    const name = event.target.name;
+    const value = event.target.value;
+    setFormData((prevState) => ({ ...prevState, [name]: value }));
+  };
 
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement the register function
   /**
@@ -36,6 +46,44 @@ const Register = () => {
    * }
    */
   const register = async (formData) => {
+    //Check if the data passed is valid or not
+    if (!validateInput(formData)) {
+      return false;
+    }
+    // start loading
+    setIsLoading(true);
+    try {
+      console.log("fromData", formData);
+      let data = {
+        username: formData.username,
+        password: formData.password,
+      };
+      let response = await axios.post(`${config.endpoint}/auth/register`, data);
+      // console.log("response", response);
+      history.push("/login");
+
+      // if post call successful
+      if (response.status === 201 && response.data.success) {
+        // If username is already exist
+        enqueueSnackbar("Registered Successfully", { variant: "success" });
+      }
+    } catch (error) {
+      // console.log("error",error);
+      // other error
+      if (error.response && error.response.status === 400) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Something went wrong. Check that the backend is running, reachable and return the valid JSON",
+          { variant: "error" }
+        );
+      }
+    }
+
+    // End loading
+    setIsLoading(false);
+    //removing the added data from register form
+    setFormData({ username: "", password: "", confirmPassword: "" });
   };
 
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement user input validation logic
@@ -57,6 +105,42 @@ const Register = () => {
    * -    Check that confirmPassword field has the same value as password field - Passwords do not match
    */
   const validateInput = (data) => {
+    // validate the username
+    if (data.username === undefined || data.username.trim === "") {
+      enqueueSnackbar("Username is required field", { variant: "error" });
+      setFormData({});
+      return false;
+    }
+    if (data.username.length < 6) {
+      enqueueSnackbar("Username must be at least 6 characters", {
+        variant: "error",
+      });
+      setFormData({});
+      return false;
+    }
+
+    // Validate the password
+    if (data.password === undefined || data.password.trim === "") {
+      enqueueSnackbar("Password is required field", { variant: "error" });
+      setFormData({});
+      return false;
+    }
+    if (data.password.length < 6) {
+      enqueueSnackbar("Password must be at least 6 characters", {
+        variant: "error",
+      });
+      setFormData({});
+      return false;
+    }
+
+    // validate the confirm Password
+    if (data.password !== data.confirmPassword) {
+      enqueueSnackbar("Password do not match", { variant: "error" });
+      setFormData({});
+      return false;
+    }
+
+    return true;
   };
 
   return (
@@ -77,6 +161,8 @@ const Register = () => {
             title="Username"
             name="username"
             placeholder="Enter Username"
+            value={formData.username || ""}
+            onChange={handleChange}
             fullWidth
           />
           <TextField
@@ -88,6 +174,8 @@ const Register = () => {
             helperText="Password must be atleast 6 characters length"
             fullWidth
             placeholder="Enter a password with minimum 6 characters"
+            value={formData.password || ""}
+            onChange={handleChange}
           />
           <TextField
             id="confirmPassword"
@@ -95,16 +183,25 @@ const Register = () => {
             label="Confirm Password"
             name="confirmPassword"
             type="password"
+            value={formData.confirmPassword || ""}
+            onChange={handleChange}
             fullWidth
           />
-           <Button className="button" variant="contained">
+          <Button
+            className="button"
+            variant="contained"
+            onClick={() => {
+              register(formData);
+            }}
+          >
             Register Now
-           </Button>
+          </Button>
           <p className="secondary-action">
-            Already have an account?{" "}
-             <a className="link" href="#">
+            Already have an account? {/* <a className="link" href="#"> */}
+            <Link className="link" to="/login">
               Login here
-             </a>
+            </Link>
+            {/* </a> */}
           </p>
         </Stack>
       </Box>
