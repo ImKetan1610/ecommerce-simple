@@ -194,7 +194,8 @@ const Register = () => {
               register(formData);
             }}
           >
-            Register Now
+            {/* Register Now */}
+            {isLoading ? <CircularProgress /> : "Register Now"}
           </Button>
           <p className="secondary-action">
             Already have an account? {/* <a className="link" href="#"> */}
