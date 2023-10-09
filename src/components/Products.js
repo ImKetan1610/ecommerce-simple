@@ -13,11 +13,12 @@ import { config } from "../App";
 import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
+import ProductCard from "./ProductCard";
 
 // Definition of Data Structures used
 /**
  * @typedef {Object} Product - Data on product available to buy
- * 
+ *
  * @property {string} name - The name or title of the product
  * @property {string} category - The category that the product belongs to
  * @property {number} cost - The price to buy the product
@@ -26,10 +27,15 @@ import "./Products.css";
  * @property {string} _id - Unique ID for the product
  */
 
-
 const Products = () => {
-
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Fetch products data and store it
+
+  const { enqueueSnackbar } = useSnackbar();
+  const [isLoading, setIsLoading] = useState(false);
+  //original product list
+  const [productDetails, setProductDetails] = useState([]);
+  // filtered product list, on which product card will be rendered
+  const [filteredProducts, setFilteredProducts] = useState([]);
   /**
    * Make API call to get the products list and store it to display the products
    *
@@ -67,7 +73,20 @@ const Products = () => {
    * }
    */
   const performAPICall = async () => {
+    setIsLoading(true);
+    try {
+      let response = await axios.get(`${config.endpoint}/products`);
+      setProductDetails(response.data);
+      setFilteredProducts(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+    setIsLoading(false);
   };
+
+  useEffect(() => {
+    performAPICall();
+  }, []);
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Implement search logic
   /**
@@ -83,8 +102,7 @@ const Products = () => {
    * API endpoint - "GET /products/search?value=<search-query>"
    *
    */
-  const performSearch = async (text) => {
-  };
+  const performSearch = async (text) => {};
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Optimise API calls with debounce search implementation
   /**
@@ -98,22 +116,29 @@ const Products = () => {
    *    Timer id set for the previous debounce call
    *
    */
-  const debounceSearch = (event, debounceTimeout) => {
-  };
+  const debounceSearch = (event, debounceTimeout) => {};
 
-
-
-
-
-
+  const handleAddToCart = () => {};
 
   return (
     <div>
       <Header>
         {/* TODO: CRIO_TASK_MODULE_PRODUCTS - Display search bar in the header for Products page */}
-
+        <TextField
+          className="search-desktop"
+          size="small"
+          fullWidth
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Search color="primary" />
+              </InputAdornment>
+            ),
+          }}
+          placeholder="Search for items/categories"
+          name="search"
+        ></TextField>
       </Header>
-
       {/* Search view for mobiles */}
       <TextField
         className="search-mobile"
@@ -129,16 +154,31 @@ const Products = () => {
         placeholder="Search for items/categories"
         name="search"
       />
-       <Grid container>
-         <Grid item className="product-grid">
-           <Box className="hero">
-             <p className="hero-heading">
-               India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-               to your door step
-             </p>
-           </Box>
-         </Grid>
-       </Grid>
+      <Grid container>
+        <Grid item className="product-grid">
+          <Box className="hero">
+            <p className="hero-heading">
+              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
+              to your door step
+            </p>
+          </Box>
+        </Grid>
+      </Grid>
+      <Grid
+        container
+        item
+        spacing={1}
+        direction="row"
+        justifyContent="center"
+        alignItems="center"
+        my={3}
+      >
+        {filteredProducts.map((product) => (
+          <Grid item key={product["_id"]} xs={6} md={3}>
+            <ProductCard product={product} handleAddToCart={handleAddToCart} />
+          </Grid>
+        ))}
+      </Grid>
       <Footer />
     </div>
   );
