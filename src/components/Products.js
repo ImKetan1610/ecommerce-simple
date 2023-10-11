@@ -36,6 +36,7 @@ const Products = () => {
   const [productDetails, setProductDetails] = useState([]);
   // filtered product list, on which product card will be rendered
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [timeoutId, setTimeoutId] = useState(null);
   /**
    * Make API call to get the products list and store it to display the products
    *
@@ -80,6 +81,9 @@ const Products = () => {
       setFilteredProducts(response.data);
     } catch (error) {
       console.log(error);
+      if (error.response && error.response.status === 400) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+      }
     }
     setIsLoading(false);
   };
@@ -102,7 +106,35 @@ const Products = () => {
    * API endpoint - "GET /products/search?value=<search-query>"
    *
    */
-  const performSearch = async (text) => {};
+  const performSearch = async (text) => {
+    // start loading
+    setIsLoading(true);
+    try {
+      // make a call for search query
+      let response = await axios.get(
+        `${config.endpoint}/products/search?value=${text}`
+      );
+      //if call is successful then set the response data to the filtered details on which the ui should be rendered
+      setFilteredProducts(response.data);
+    } catch (error) {
+      // if products are not found
+      if (error.response && error.response.status === 404) {
+        // set data to an empty array
+        setFilteredProducts([]);
+      } else if (error.response && error.response.status === 500) {
+        // if there is some internal server error
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+        setFilteredProducts(productDetails);
+      } else {
+        enqueueSnackbar(
+          "Something went wrong. Check that the backend is running, reachable and returns valid JSON",
+          { variant: "error" }
+        );
+      }
+    }
+    // stop loading
+    setIsLoading(false);
+  };
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Optimise API calls with debounce search implementation
   /**
@@ -116,7 +148,19 @@ const Products = () => {
    *    Timer id set for the previous debounce call
    *
    */
-  const debounceSearch = (event, debounceTimeout) => {};
+  const debounceSearch = (event, debounceTimeout) => {
+    let text = event.target.value;
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
+    let timeOut = setTimeout(() => {
+      performSearch(text);
+    }, 500);
+
+    setTimeoutId(timeOut);
+  };
 
   const handleAddToCart = () => {};
 
@@ -137,7 +181,8 @@ const Products = () => {
           }}
           placeholder="Search for items/categories"
           name="search"
-        ></TextField>
+          onChange={(e) => debounceSearch(e, timeoutId)}
+        />
       </Header>
       {/* Search view for mobiles */}
       <TextField
@@ -164,21 +209,54 @@ const Products = () => {
           </Box>
         </Grid>
       </Grid>
-      <Grid
-        container
-        item
-        spacing={1}
-        direction="row"
-        justifyContent="center"
-        alignItems="center"
-        my={3}
-      >
-        {filteredProducts.map((product) => (
-          <Grid item key={product["_id"]} xs={6} md={3}>
-            <ProductCard product={product} handleAddToCart={handleAddToCart} />
-          </Grid>
-        ))}
-      </Grid>
+
+      {isLoading ? (
+        <>
+          <Box
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            py={10}
+          >
+            <CircularProgress size={40} />
+            <h4>Loading Products...</h4>
+          </Box>
+        </>
+      ) : (
+        <Grid
+          container
+          item
+          spacing={1}
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          my={3}
+        >
+          {filteredProducts.length > 0 ? (
+            filteredProducts.map((product) => (
+              <Grid item key={product["_id"]} xs={6} md={3}>
+                <ProductCard
+                  product={product}
+                  handleAddToCart={handleAddToCart}
+                />
+              </Grid>
+            ))
+          ) : (
+            <Box
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+              alignItems="center"
+              py={10}
+            >
+              <SentimentDissatisfied size={40} />
+              <h4>No products found</h4>
+            </Box>
+          )}
+        </Grid>
+      )}
+
       <Footer />
     </div>
   );
