@@ -37,6 +37,11 @@ const Products = () => {
   // filtered product list, on which product card will be rendered
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [timeoutId, setTimeoutId] = useState(null);
+
+  const [cartItems, setCartItems] = useState([]);
+
+  let token = localStorage.getItem("token");
+  let username = localStorage.getItem("username");
   /**
    * Make API call to get the products list and store it to display the products
    *
@@ -162,8 +167,10 @@ const Products = () => {
     setTimeoutId(timeOut);
   };
 
-  const handleAddToCart = () => {};
-
+  const handleAddToCart = (item) => {
+    // console.log("handleAddToCart", item);
+    addToCart(token, cartItems, productDetails, item, 1);
+  };
 
   /**
    * Perform the API call to fetch the user's cart and return the response
@@ -213,7 +220,6 @@ const Products = () => {
     }
   };
 
-
   // TODO: CRIO_TASK_MODULE_CART - Return if a product already exists in the cart
   /**
    * Return if a product already is present in the cart
@@ -228,6 +234,12 @@ const Products = () => {
    *
    */
   const isItemInCart = (items, productId) => {
+    console.log("isItemInCart", items, productId);
+    let present = false;
+    items.forEach((item) => {
+      if (item.productId === productId) present = true;
+    });
+    return present;
   };
 
   /**
@@ -274,8 +286,70 @@ const Products = () => {
     qty,
     options = { preventDuplicate: false }
   ) => {
+    // console.log("addToCart", token, items, products, productId, qty);
+    if (token) {
+      if (!isItemInCart(items, productId)) {
+        // console.log("checking isItemInCart", isItemInCart(items, productId));
+        // add this product to the cart
+        addInCart(productId, qty);
+      } else {
+        enqueueSnackbar(
+          "Item is already present in cart. Use cart sidebar to update the quantity or remove items.",
+          { variant: "warning" }
+        );
+      }
+    } else {
+      enqueueSnackbar("Login is required to add an item to the cart", {
+        variant: "warning",
+      });
+    }
   };
 
+  const addInCart = async (productId, qty) => {
+    // create a post request and send the data to be added to the cart
+    console.log("ADDINCART", productId, qty);
+    try {
+      let response = await axios.post(
+        `${config.endpoint}/cart`,
+        {
+          productId: productId,
+          qty: qty,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // console.log("response addInCart", response);
+      // set items to the cart
+      setCartItems(generateCartItemsFrom(response.data, productDetails));
+    } catch (error) {
+      if (error.response && error.response.status === 400) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Could not able to add the item to the cart. Something went wrong.",
+          {
+            variant: "error",
+          }
+        );
+      }
+    }
+  };
+
+  const generateCartItemsFrom = (cartData, productData) => {
+    let cartProducts = [];
+    if (cartData.length && productData.length) {
+      for (let i = 0; i < cartData.length; i++) {
+        for (let j = 0; j < productData.length; j++) {
+          if (cartData[i].productId === productData[j]._id) {
+            cartProducts.push({ ...productData[j], ...cartData[i] });
+          }
+        }
+      }
+    }
+    // console.log("generateCartItemsFrom", cartProducts);
+    return cartProducts;
+  };
 
   return (
     <div>

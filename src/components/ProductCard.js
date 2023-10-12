@@ -13,7 +13,7 @@ import React from "react";
 import "./ProductCard.css";
 
 const ProductCard = ({ product, handleAddToCart }) => {
-  console.log("productCard", product);
+  // console.log("productCard", product);
   return (
     <Card className="card">
       <CardMedia component={"img"} image={product.image} alt="product" />
@@ -40,6 +40,7 @@ const ProductCard = ({ product, handleAddToCart }) => {
           variant="contained"
           fullWidth
           className="card-button"
+          onClick={()=>handleAddToCart(product["_id"])}
         >
           <AddShoppingCartOutlined /> &nbsp; Add To Cart
         </Button>
