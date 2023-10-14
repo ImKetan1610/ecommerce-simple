@@ -42,17 +42,9 @@ import Header from "./Header";
  * @property {string} productId - Unique ID for the product
  */
 
-
-
 const Checkout = () => {
-
-
-
-
-
-
-
-
+  let products,
+    items = [];
 
   return (
     <>
@@ -69,9 +61,7 @@ const Checkout = () => {
               Select the address you want to get your order delivered.
             </Typography>
             <Divider />
-            <Box>
-            </Box>
-
+            <Box></Box>
 
             <Typography color="#3C3C3C" variant="h4" my="1rem">
               Payment
@@ -89,10 +79,7 @@ const Checkout = () => {
               </Typography>
             </Box>
 
-            <Button
-              startIcon={<CreditCard />}
-              variant="contained"
-            >
+            <Button startIcon={<CreditCard />} variant="contained">
               PLACE ORDER
             </Button>
           </Box>

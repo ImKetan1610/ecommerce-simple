@@ -14,6 +14,7 @@ import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
 import ProductCard from "./ProductCard";
+import Cart from "./Cart";
 
 // Definition of Data Structures used
 /**
@@ -39,6 +40,7 @@ const Products = () => {
   const [timeoutId, setTimeoutId] = useState(null);
 
   const [cartItems, setCartItems] = useState([]);
+  const [cartLoad, setCartLoad] = useState(false);
 
   let token = localStorage.getItem("token");
   let username = localStorage.getItem("username");
@@ -84,6 +86,8 @@ const Products = () => {
       let response = await axios.get(`${config.endpoint}/products`);
       setProductDetails(response.data);
       setFilteredProducts(response.data);
+      // fetch Cart Items
+      setCartLoad(true);
     } catch (error) {
       console.log(error);
       if (error.response && error.response.status === 400) {
@@ -96,6 +100,12 @@ const Products = () => {
   useEffect(() => {
     performAPICall();
   }, []);
+
+  // useEffect for the fetch Cart
+  useEffect(() => {
+    console.log("useEffect", cartItems);
+    fetchCart(token);
+  }, [cartLoad]);
 
   // TODO: CRIO_TASK_MODULE_PRODUCTS - Implement search logic
   /**
@@ -121,6 +131,9 @@ const Products = () => {
       );
       //if call is successful then set the response data to the filtered details on which the ui should be rendered
       setFilteredProducts(response.data);
+      setProductDetails(response.data);
+      // fetchCartItems
+      setCartLoad(true);
     } catch (error) {
       // if products are not found
       if (error.response && error.response.status === 404) {
@@ -205,6 +218,11 @@ const Products = () => {
 
     try {
       // TODO: CRIO_TASK_MODULE_CART - Pass Bearer token inside "Authorization" header to get data from "GET /cart" API and return the response data
+      const response = await axios.get(`${config.endpoint}/cart`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("fetchCart", response.data);
+      setCartItems(generateCartItemsFrom(response.data, productDetails));
     } catch (e) {
       if (e.response && e.response.status === 400) {
         enqueueSnackbar(e.response.data.message, { variant: "error" });
@@ -351,6 +369,10 @@ const Products = () => {
     return cartProducts;
   };
 
+  const handleQuantity = (productId, qty) => {
+    addInCart(productId, qty);
+  };
+
   return (
     <div>
       <Header>
@@ -411,35 +433,48 @@ const Products = () => {
           </Box>
         </>
       ) : (
-        <Grid
-          container
-          item
-          spacing={1}
-          direction="row"
-          justifyContent="center"
-          alignItems="center"
-          my={3}
-        >
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <Grid item key={product["_id"]} xs={6} md={3}>
-                <ProductCard
-                  product={product}
-                  handleAddToCart={handleAddToCart}
-                />
-              </Grid>
-            ))
-          ) : (
-            <Box
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              alignItems="center"
-              py={10}
-            >
-              <SentimentDissatisfied size={40} />
-              <h4>No products found</h4>
-            </Box>
+        <Grid container>
+          <Grid
+            container
+            item
+            spacing={1}
+            direction="row"
+            justifyContent="center"
+            alignItems="center"
+            my={3}
+            xs
+            md
+          >
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <Grid item key={product["_id"]} xs={6} md={3}>
+                  <ProductCard
+                    product={product}
+                    handleAddToCart={handleAddToCart}
+                  />
+                </Grid>
+              ))
+            ) : (
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                py={10}
+              >
+                <SentimentDissatisfied size={40} />
+                <h4>No products found</h4>
+              </Box>
+            )}
+          </Grid>
+          {username && (
+            <Grid container xs={12} md={3}>
+              <Cart
+                products={productDetails}
+                items={cartItems}
+                handleQuantity={handleQuantity}
+              />
+            </Grid>
           )}
         </Grid>
       )}
