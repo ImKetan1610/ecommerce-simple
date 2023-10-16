@@ -43,8 +43,67 @@ import Header from "./Header";
  */
 
 const Checkout = () => {
-  let products,
-    items = [];
+  // let products,
+  //   items = [];
+
+  const [products, setProducts] = useState([]);
+  const [items, setItems] = useState([]);
+
+  const token = localStorage.getItem("token");
+  const history = useHistory();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const getProducts = async () => {
+    try {
+      const response = await axios.get(`${config.endpoint}/products`);
+      setProducts(response.data);
+      // console.log("response", response.data);
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status == 500) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+        return null;
+      } else {
+        enqueueSnackbar(
+          "Could not fetch products. Check that the backend is running, reachable and returns valid JSON.",
+          { variant: "error" }
+        );
+      }
+    }
+  };
+
+  const fetchCart = async (token) => {
+    if (!token) return;
+    try {
+      let response = await axios.get(`${config.endpoint}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      enqueueSnackbar(
+        "Could not fetch cart details. Check that the backend is running, reachable and returns valid JSON.",
+        {
+          variant: "error",
+        }
+      );
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const onLoadHandler = async () => {
+      const productData = await getProducts();
+      const cartData = await fetchCart(token);
+      if (productData && cartData) {
+        const cartDetails = await generateCartItemsFrom(cartData, productData);
+        setItems(cartDetails);
+      }
+    };
+    onLoadHandler();
+    console.log("products", products);
+  }, []);
 
   return (
     <>

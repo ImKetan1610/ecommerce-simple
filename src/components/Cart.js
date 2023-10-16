@@ -47,7 +47,19 @@ import "./Cart.css";
  *    Array of objects with complete data on products in cart
  *
  */
-export const generateCartItemsFrom = (cartData, productsData) => {};
+export const generateCartItemsFrom = (cartData, productsData) => {
+  let cartProducts = [];
+  if (cartData.length && productsData.length) {
+    for (let i = 0; i < cartData.length; i++) {
+      for (let j = 0; j < productsData.length; j++) {
+        if (cartData[i].productId === productsData[j]._id) {
+          cartProducts.push({ ...productsData[j], ...cartData[i] });
+        }
+      }
+    }
+  }
+  return cartProducts;
+};
 
 /**
  * Get the total value of all products added to the cart
@@ -120,7 +132,7 @@ const ItemQuantity = ({ value, handleAdd, handleDelete }) => {
  *
  */
 const Cart = ({ products, items = [], handleQuantity, readOnly = false }) => {
-  console.log("Cart", products, items, handleQuantity);
+  // console.log("Cart", products, items, handleQuantity);
   const history = useHistory();
 
   if (!items.length) {
