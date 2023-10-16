@@ -48,6 +48,11 @@ const Checkout = () => {
 
   const [products, setProducts] = useState([]);
   const [items, setItems] = useState([]);
+  const [addresses, setAddresses] = useState({ all: [{address:"ketan makode, sant gajanan nagar, nagpur"}], selected: "" });
+  const [newAddress, setNewAddess] = useState({
+    isAddingNewAddress: false,
+    value: "",
+  });
 
   const token = localStorage.getItem("token");
   const history = useHistory();
@@ -120,7 +125,47 @@ const Checkout = () => {
               Select the address you want to get your order delivered.
             </Typography>
             <Divider />
-            <Box></Box>
+            {/* logic for Address add below this line */}
+            <Box>
+              {addresses.all.length === 0 && (
+                <Typography my="1rem">
+                  No addresses found for this account. Please add one to
+                  proceed.
+                </Typography>
+              )}
+            </Box>
+
+            {addresses.all.length > 0 &&
+              addresses.all.map((address) => (
+                <Box
+                  className={
+                    addresses.selected === address._id
+                      ? "address-item selected"
+                      : "address-item not-selected"
+                  }
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mt={3}
+                  key={address._id}
+                >
+                  <Box ml={1} width="100%">
+                    <Button
+                      type="text"
+                      role="text"
+                      variant="text"
+                      sx={{ color: "black" }}
+                      onClick={() => {
+                        setAddresses({ ...addresses, selected: address._id });
+                      }}
+                    >
+                      {address.address}
+                    </Button>
+                  </Box>
+                </Box>
+              ))}
+
+            {/* logic for address add above this line */}
 
             <Typography color="#3C3C3C" variant="h4" my="1rem">
               Payment
