@@ -42,14 +42,55 @@ import Header from "./Header";
  * @property {string} productId - Unique ID for the product
  */
 
+const AddNewAddressView = ({
+  token,
+  newAddress,
+  handleNewAddress,
+  addAddress,
+}) => {
+  return (
+    <Box display="flex" flexDirection="column">
+      <TextField
+        multiline
+        minRows={4}
+        placeholder="Enter you complete Address"
+        onChange={(event) =>
+          handleNewAddress({ ...newAddress, value: event.target.value })
+        }
+      />
+      <Stack direction="row" my="1rem">
+        <Button
+          variant="contained"
+          onClick={async () => {
+            await addAddress(token, newAddress);
+          }}
+        >
+          Add
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => {
+            handleNewAddress({ isAddingNewAddress: false, value: "" });
+          }}
+        >
+          Cancel
+        </Button>
+      </Stack>
+    </Box>
+  );
+};
+
 const Checkout = () => {
   // let products,
   //   items = [];
 
   const [products, setProducts] = useState([]);
   const [items, setItems] = useState([]);
-  const [addresses, setAddresses] = useState({ all: [{address:"ketan makode, sant gajanan nagar, nagpur"}], selected: "" });
-  const [newAddress, setNewAddess] = useState({
+  const [addresses, setAddresses] = useState({
+    all: [],
+    selected: "",
+  });
+  const [newAddress, setNewAddress] = useState({
     isAddingNewAddress: false,
     value: "",
   });
@@ -77,6 +118,33 @@ const Checkout = () => {
     }
   };
 
+  const getAddresses = async (token) => {
+    if (!token) {
+      history.push("/");
+    }
+    try {
+      const response = await axios.get(`${config.endpoint}/user/addresses`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setAddresses({ ...addresses, all: response.data });
+      return response.data;
+    } catch (error) {
+      if (!token) {
+        enqueueSnackbar("You must be logged in to access checkout page.", {
+          variant: "error",
+        });
+      } else {
+        enqueueSnackbar(
+          "Could not fetch addresses. Check that the backend is running, reachable and returns the valid JSON.",
+          { variant: "error" }
+        );
+      }
+      return null;
+    }
+  };
+
   const fetchCart = async (token) => {
     if (!token) return;
     try {
@@ -97,6 +165,66 @@ const Checkout = () => {
     }
   };
 
+  const validateRequest = (items, addresses) => {
+    if (getTotalCartValue(items) > localStorage.getItem("balance")) {
+      enqueueSnackbar(
+        "You do not have enough balance in your wallet for this purchase",
+        { variant: "warning" }
+      );
+      return false;
+    }
+
+    if (addresses.all.length === 0) {
+      enqueueSnackbar("Please add a new address before proceeding.", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (!addresses.selected && addresses.all.length > 0) {
+      enqueueSnackbar("Please select one shipping address to proceed.", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const performCheckout = async (token, items, addresses) => {
+    let flag = validateRequest(items, addresses);
+    if (flag) {
+      try {
+        let response = await axios.post(
+          `${config.endpoint}/cart/checkout`,
+          { addressId: addresses.selected },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (response.data.success) {
+          let balance =
+            localStorage.getItem("balance") - getTotalCartValue(items);
+          localStorage.setItem(balance);
+
+          enqueueSnackbar("Order Placed Successfully", { variant: "success" });
+        }
+      } catch (error) {
+        if (error.response) {
+          enqueueSnackbar(error.response.data.message, { variant: "error" });
+        } else {
+          enqueueSnackbar(
+            "Could not place order. Check that backend is running, reachable and return the valid JSON.",
+            {
+              variant: "error",
+            }
+          );
+        }
+      }
+    } else {
+      return false;
+    }
+  };
+
   useEffect(() => {
     const onLoadHandler = async () => {
       const productData = await getProducts();
@@ -105,10 +233,64 @@ const Checkout = () => {
         const cartDetails = await generateCartItemsFrom(cartData, productData);
         setItems(cartDetails);
       }
+      await getAddresses(token);
     };
     onLoadHandler();
     console.log("products", products);
   }, []);
+
+  const addAddress = async (token, newAddress) => {
+    try {
+      const response = await axios.post(
+        `${config.endpoint}/user/addresses`,
+        { address: newAddress.value },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAddresses({ ...addAddress, all: response.data });
+      setNewAddress((currAddress) => ({
+        ...currAddress,
+        isAddingNewAddress: false,
+        value: "",
+      }));
+      // success banner
+      enqueueSnackbar("New Address added Successfully", { variant: "success" });
+    } catch (error) {
+      if (error.response) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Could not add this address. Please Check that backend is running, reachable and return the valid JSON.",
+          { variant: "error" }
+        );
+      }
+    }
+  };
+
+  const deleteAddress = async (token, addressId) => {
+    try {
+      let response = await axios.delete(
+        `${config.endpoint}/user/addresses/${addressId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      //update the deleted data
+      setAddresses({ ...addresses, all: response.data });
+      // success message
+      enqueueSnackbar("Deleted", { variant: "success" });
+    } catch (error) {
+      if (error.response) {
+        enqueueSnackbar(error.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Could not delete this address. Check that the backend is running, reachable and returns the valid JSON.",
+          { variant: "error" }
+        );
+      }
+    }
+  };
 
   return (
     <>
@@ -162,8 +344,43 @@ const Checkout = () => {
                       {address.address}
                     </Button>
                   </Box>
+                  <Box mr={1}>
+                    <Button
+                      onClick={() => {
+                        deleteAddress(token, address._id);
+                      }}
+                    >
+                      <Delete /> Delete
+                    </Button>
+                  </Box>
                 </Box>
               ))}
+
+            {!newAddress.isAddingNewAddress && (
+              <Button
+                color="primary"
+                variant="contained"
+                id="add-new-btn"
+                size="large"
+                onClick={() => {
+                  setNewAddress((currNewAddress) => ({
+                    ...currNewAddress,
+                    isAddingNewAddress: true,
+                  }));
+                }}
+              >
+                Add new address
+              </Button>
+            )}
+
+            {newAddress.isAddingNewAddress && (
+              <AddNewAddressView
+                token={token}
+                newAddress={newAddress}
+                handleNewAddress={setNewAddress}
+                addAddress={addAddress}
+              />
+            )}
 
             {/* logic for address add above this line */}
 
@@ -183,7 +400,11 @@ const Checkout = () => {
               </Typography>
             </Box>
 
-            <Button startIcon={<CreditCard />} variant="contained">
+            <Button
+              startIcon={<CreditCard />}
+              variant="contained"
+              onClick={() => performCheckout(token, items, addresses)}
+            >
               PLACE ORDER
             </Button>
           </Box>
