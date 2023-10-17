@@ -239,15 +239,22 @@ const Checkout = () => {
         let response = await axios.post(
           `${config.endpoint}/cart/checkout`,
           { addressId: addresses.selected },
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         if (response.data.success) {
           let balance =
             localStorage.getItem("balance") - getTotalCartValue(items);
-          localStorage.setItem(balance);
-
+          localStorage.setItem("balance", balance);
+          // Redirect to thanks page
+          history.push("/thanks");
+          // order successful
           enqueueSnackbar("Order Placed Successfully", { variant: "success" });
+          return true;
         }
       } catch (error) {
         if (error.response) {
