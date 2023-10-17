@@ -42,6 +42,47 @@ import Header from "./Header";
  * @property {string} productId - Unique ID for the product
  */
 
+/**
+ * @typedef {Object} Address - Data on added address
+ *
+ * @property {string} _id - Unique ID for the address
+ * @property {string} address - Full address string
+ */
+
+/**
+ * @typedef {Object} Addresses - Data on all added addresses
+ *
+ * @property {Array.<Address>} all - Data on all added addresses
+ * @property {string} selected - Id of the currently selected address
+ */
+
+/**
+ * @typedef {Object} NewAddress - Data on the new address being typed
+ *
+ * @property { Boolean } isAddingNewAddress - If a new address is being added
+ * @property { String} value - Latest value of the address being typed
+ */
+
+// TODO: CRIO_TASK_MODULE_CHECKOUT - Should allow to type a new address in the text field and add the new address or cancel adding new address
+/**
+ * Returns the complete data on all products in cartData by searching in productsData
+ *
+ * @param { String } token
+ *    Login token
+ *
+ * @param { NewAddress } newAddress
+ *    Data on new address being added
+ *
+ * @param { Function } handleNewAddress
+ *    Handler function to set the new address field to the latest typed value
+ *
+ * @param { Function } addAddress
+ *    Handler function to make an API call to add the new address
+ *
+ * @returns { JSX.Element }
+ *    JSX for the Add new address view
+ *
+ */
 const AddNewAddressView = ({
   token,
   newAddress,
